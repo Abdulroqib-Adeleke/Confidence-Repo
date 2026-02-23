@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Student Utility App</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --green: #00ff88;
+            --green-dim: #00cc6a;
+            --green-glow: rgba(0,255,136,0.3);
+            --bg: #060a0f;
+            --surface: #0c1219;
+            --surface2: #111a24;
+            --border: rgba(0,255,136,0.2);
+            --text: #c8ffea;
+            --muted: #4a7a62;
+            --red: #ff4466;
+            --amber: #ffcc44;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Share Tech Mono', monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Scanline overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.08) 2px,
+                rgba(0,0,0,0.08) 4px
+            );
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* Noise texture */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+            opacity: 0.4;
+            pointer-events: none;
+            z-index: 9998;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeDown 0.8s ease both;
+        }
+
+        .header-badge {
+            display: inline-block;
+            border: 1px solid var(--green);
+            padding: 0.2rem 1rem;
+            font-size: 0.7rem;
+            color: var(--green);
+            letter-spacing: 0.3em;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .header-badge::before, .header-badge::after {
+            content: '■';
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--green);
+            font-size: 0.5rem;
+        }
+        .header-badge::before { left: -12px; }
+        .header-badge::after { right: -12px; }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(1.8rem, 5vw, 3rem);
+            font-weight: 900;
+            color: var(--green);
+            text-shadow: 0 0 20px var(--green-glow), 0 0 60px rgba(0,255,136,0.1);
+            letter-spacing: 0.05em;
+            line-height: 1.1;
+        }
+
+        .subtitle {
+            margin-top: 0.5rem;
+            color: var(--muted);
+            font-size: 0.8rem;
+            letter-spacing: 0.2em;
+        }
+
+        /* Menu grid */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 600px) {
+            .menu-grid { grid-template-columns: 1fr; }
+        }
+
+        .menu-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            animation: fadeUp 0.5s ease both;
+        }
+
+        .menu-card:nth-child(1) { animation-delay: 0.1s; }
+        .menu-card:nth-child(2) { animation-delay: 0.2s; }
+        .menu-card:nth-child(3) { animation-delay: 0.3s; }
+        .menu-card:nth-child(4) { animation-delay: 0.4s; }
+
+        .menu-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--green-glow) 0%, transparent 60%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .menu-card:hover {
+            border-color: var(--green);
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px var(--green-glow), inset 0 0 20px rgba(0,255,136,0.03);
+        }
+
+        .menu-card:hover::before { opacity: 1; }
+
+        .menu-card.active {
+            border-color: var(--green);
+            box-shadow: 0 0 30px var(--green-glow);
+        }
+
+        .card-num {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 900;
+            color: rgba(0,255,136,0.15);
+            line-height: 1;
+            margin-bottom: 0.5rem;
+            transition: color 0.2s;
+        }
+
+        .menu-card:hover .card-num,
+        .menu-card.active .card-num {
+            color: var(--green);
+        }
+
+        .card-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .card-desc {
+            margin-top: 0.3rem;
+            font-size: 0.7rem;
+            color: var(--muted);
+        }
+
+        /* Panel */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            display: none;
+            animation: slideIn 0.3s ease both;
+        }
+
+        .panel.visible { display: block; }
+
+        .panel-header {
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
+            padding: 0.8rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .panel-dots {
+            display: flex;
+            gap: 0.4rem;
+        }
+
+        .dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+        }
+        .dot-r { background: var(--red); opacity: 0.6; }
+        .dot-y { background: var(--amber); opacity: 0.6; }
+        .dot-g { background: var(--green); opacity: 0.6; }
+
+        .panel-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.7rem;
+            color: var(--muted);
+            letter-spacing: 0.2em;
+            flex: 1;
+        }
+
+        .panel-body {
+            padding: 1.5rem;
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.72rem;
+            color: var(--green-dim);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 0.4rem;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1rem;
+            padding: 0.7rem 1rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            -moz-appearance: textfield;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button { display: none; }
+
+        input[type="number"]:focus {
+            border-color: var(--green);
+            box-shadow: 0 0 10px var(--green-glow);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        @media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--green);
+            color: var(--green);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            padding: 0.75rem 2rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--green);
+            transform: translateX(-101%);
+            transition: transform 0.2s ease;
+            z-index: 0;
+        }
+
+        .btn:hover::before { transform: translateX(0); }
+        .btn:hover { color: var(--bg); }
+        .btn span { position: relative; z-index: 1; }
+
+        /* Result terminal */
+        .result-box {
+            margin-top: 1.5rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            padding: 1rem 1.2rem;
+            display: none;
+            position: relative;
+        }
+
+        .result-box.visible { display: block; animation: fadeUp 0.3s ease; }
+
+        .result-label {
+            font-size: 0.65rem;
+            color: var(--muted);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .result-text {
+            color: var(--green);
+            font-size: 1rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            text-shadow: 0 0 8px var(--green-glow);
+            line-height: 1.6;
+        }
+
+        .result-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 1.1em;
+            background: var(--green);
+            vertical-align: text-bottom;
+            margin-left: 2px;
+            animation: blink 1s step-end infinite;
+        }
+
+        /* Loading */
+        .loader {
+            display: none;
+            color: var(--muted);
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            animation: pulse 1s ease infinite;
+        }
+        .loader.visible { display: block; }
+
+        /* Status bar */
+        .status-bar {
+            margin-top: 2rem;
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.65rem;
+            color: var(--muted);
+            letter-spacing: 0.1em;
+            animation: fadeUp 0.8s 0.5s ease both;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            margin-right: 0.5rem;
+            animation: pulse 2s ease infinite;
+        }
+
+        /* Animations */
+        @keyframes fadeDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0; }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.4; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <header>
+        <div class="header-badge">SYSTEM v1.0.0</div>
+        <h1>STUDENT<br>UTILITY</h1>
+        <p class="subtitle">// SELECT A MODULE TO BEGIN //</p>
+    </header>
+
+    <!-- Menu cards -->
+    <div class="menu-grid">
+        <div class="menu-card" onclick="showPanel('add')" id="card-add">
+            <div class="card-num">01</div>
+            <div class="card-title">Add Numbers</div>
+            <div class="card-desc">Sum two integers</div>
+        </div>
+        <div class="menu-card" onclick="showPanel('evenodd')" id="card-evenodd">
+            <div class="card-num">02</div>
+            <div class="card-title">Even / Odd</div>
+            <div class="card-desc">Classify a number</div>
+        </div>
+        <div class="menu-card" onclick="showPanel('printto')" id="card-printto">
+            <div class="card-num">03</div>
+            <div class="card-title">Print to N</div>
+            <div class="card-desc">List numbers from 1 to N</div>
+        </div>
+        <div class="menu-card" onclick="showPanel('dayofweek')" id="card-dayofweek">
+            <div class="card-num">04</div>
+            <div class="card-title">Day of Week</div>
+            <div class="card-desc">Map 1–7 to weekday name</div>
+        </div>
+    </div>
+
+    <!-- ADD NUMBERS -->
+    <div class="panel" id="panel-add">
+        <div class="panel-header">
+            <div class="panel-dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+            <div class="panel-title">MODULE_01 — ADD_NUMBERS</div>
+        </div>
+        <div class="panel-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>First Number</label>
+                    <input type="number" id="add-first" placeholder="e.g. 42"/>
+                </div>
+                <div class="form-group">
+                    <label>Second Number</label>
+                    <input type="number" id="add-second" placeholder="e.g. 58"/>
+                </div>
+            </div>
+            <button class="btn" onclick="runAdd()"><span>▶ EXECUTE</span></button>
+            <div class="loader" id="load-add">// processing...</div>
+            <div class="result-box" id="res-add">
+                <div class="result-label">// OUTPUT</div>
+                <div class="result-text" id="res-add-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EVEN ODD -->
+    <div class="panel" id="panel-evenodd">
+        <div class="panel-header">
+            <div class="panel-dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+            <div class="panel-title">MODULE_02 — EVEN_ODD_CHECK</div>
+        </div>
+        <div class="panel-body">
+            <div class="form-group">
+                <label>Number to Check</label>
+                <input type="number" id="eo-num" placeholder="e.g. 7"/>
+            </div>
+            <button class="btn" onclick="runEvenOdd()"><span>▶ EXECUTE</span></button>
+            <div class="loader" id="load-evenodd">// processing...</div>
+            <div class="result-box" id="res-evenodd">
+                <div class="result-label">// OUTPUT</div>
+                <div class="result-text" id="res-evenodd-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PRINT TO N -->
+    <div class="panel" id="panel-printto">
+        <div class="panel-header">
+            <div class="panel-dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+            <div class="panel-title">MODULE_03 — PRINT_SEQUENCE</div>
+        </div>
+        <div class="panel-body">
+            <div class="form-group">
+                <label>Print from 1 to N (max 1000)</label>
+                <input type="number" id="pt-num" placeholder="e.g. 20" min="1" max="1000"/>
+            </div>
+            <button class="btn" onclick="runPrintTo()"><span>▶ EXECUTE</span></button>
+            <div class="loader" id="load-printto">// processing...</div>
+            <div class="result-box" id="res-printto">
+                <div class="result-label">// OUTPUT</div>
+                <div class="result-text" id="res-printto-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DAY OF WEEK -->
+    <div class="panel" id="panel-dayofweek">
+        <div class="panel-header">
+            <div class="panel-dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+            <div class="panel-title">MODULE_04 — DAY_OF_WEEK</div>
+        </div>
+        <div class="panel-body">
+            <div class="form-group">
+                <label>Enter a number from 1 to 7</label>
+                <input type="number" id="dow-num" placeholder="1=MON … 7=SUN" min="1" max="7"/>
+            </div>
+            <button class="btn" onclick="runDayOfWeek()"><span>▶ EXECUTE</span></button>
+            <div class="loader" id="load-dayofweek">// processing...</div>
+            <div class="result-box" id="res-dayofweek">
+                <div class="result-label">// OUTPUT</div>
+                <div class="result-text" id="res-dayofweek-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div><span class="status-dot"></span>SYSTEM ONLINE — PORT 8080</div>
+        <div>STUDENT UTILITY APP © 2024</div>
+    </div>
+
+</div>
+
+<script>
+    let activeCard = null;
+
+    function showPanel(id) {
+        // Hide all panels
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
+        document.querySelectorAll('.menu-card').forEach(c => c.classList.remove('active'));
+
+        // Show selected
+        document.getElementById('panel-' + id).classList.add('visible');
+        document.getElementById('card-' + id).classList.add('active');
+
+        // Scroll to panel
+        setTimeout(() => {
+            document.getElementById('panel-' + id).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 50);
+    }
+
+    function setLoading(key, on) {
+        document.getElementById('load-' + key).classList.toggle('visible', on);
+    }
+
+    function showResult(key, text) {
+        const box = document.getElementById('res-' + key);
+        const el  = document.getElementById('res-' + key + '-text');
+        el.textContent = text;
+        box.classList.add('visible');
+    }
+
+    async function post(url, params) {
+        const body = new URLSearchParams(params);
+        const res = await fetch(url, { method: 'POST', body });
+        return res.json();
+    }
+
+    async function runAdd() {
+        const first  = document.getElementById('add-first').value;
+        const second = document.getElementById('add-second').value;
+        if (!first || !second) return alert('Please fill in both numbers.');
+        setLoading('add', true);
+        const data = await post('/api/add', { first, second });
+        setLoading('add', false);
+        showResult('add', data.result);
+    }
+
+    async function runEvenOdd() {
+        const num = document.getElementById('eo-num').value;
+        if (!num) return alert('Please enter a number.');
+        setLoading('evenodd', true);
+        const data = await post('/api/evenodd', { num });
+        setLoading('evenodd', false);
+        showResult('evenodd', data.result);
+    }
+
+    async function runPrintTo() {
+        const num = document.getElementById('pt-num').value;
+        if (!num) return alert('Please enter a number.');
+        setLoading('printto', true);
+        const data = await post('/api/printto', { num });
+        setLoading('printto', false);
+        showResult('printto', data.result);
+    }
+
+    async function runDayOfWeek() {
+        const num = document.getElementById('dow-num').value;
+        if (!num) return alert('Please enter a number between 1 and 7.');
+        setLoading('dayofweek', true);
+        const data = await post('/api/dayofweek', { num });
+        setLoading('dayofweek', false);
+        showResult('dayofweek', data.result);
+    }
+
+    // Allow Enter key to submit
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        const active = document.querySelector('.panel.visible');
+        if (!active) return;
+        const btn = active.querySelector('.btn');
+        if (btn) btn.click();
+    });
+</script>
+</body>
+</html>
