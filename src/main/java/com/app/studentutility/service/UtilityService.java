@@ -5,10 +5,43 @@ import org.springframework.stereotype.Service;
 @Service
 public class UtilityService {
 
+    public String arithmeticOperation(String operation, int a, int b){
+        return switch (operation) {
+            case "add" -> addTwoNumbers(a, b);
+
+            case "subtract" -> subtractFromNumber(a, b);
+
+            case "multiply" -> multiplyTwoNumbers(a, b);
+
+            case "divide" -> divide(a, b);
+
+            default -> "Unknown operation: " + operation;
+        };
+    }
+
     public String addTwoNumbers(int first, int second) {
         int sum = first + second;
         return "Sum of " + first + " + " + second + " = " + sum;
     }
+
+    public String subtractFromNumber(int number, int minus){
+        int result = number - minus;
+        return number + " - " + minus + " = " + result;
+    }
+
+    public String multiplyTwoNumbers(int first, int second){
+        int result = first * second;
+        return  first + " X " + second + " = " + result;
+    }
+
+    public String divide(int number, int divideBy){
+        if(divideBy == 0)
+            return "Please enter a positive number";
+
+        double result = (double) number / divideBy;
+        return number + "/" + divideBy + " = " + result;
+    }
+
 
     public String evenOrOdd(int num) {
         String result = (num % 2 == 0) ? "Even" : "Odd";

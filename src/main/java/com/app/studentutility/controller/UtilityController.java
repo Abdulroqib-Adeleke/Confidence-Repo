@@ -18,10 +18,10 @@ public class UtilityController {
         return "index";
     }
 
-    @PostMapping("/api/add")
+    @PostMapping("/api/arithmetic")
     @ResponseBody
-    public Map<String, String> addNumbers(@RequestParam int first, @RequestParam int second) {
-        return Map.of("result", utilityService.addTwoNumbers(first, second));
+    public Map<String, String> arithmeticOperation(@RequestParam String operation, @RequestParam int a, @RequestParam int b) {
+        return Map.of("result", utilityService.arithmeticOperation(operation, a, b));
     }
 
     @PostMapping("/api/evenodd")

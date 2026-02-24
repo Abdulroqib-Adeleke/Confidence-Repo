@@ -401,6 +401,40 @@
             0%, 100% { opacity: 1; }
             50%       { opacity: 0.4; }
         }
+        /* Operation selector */
+        .op-selector {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .op-btn {
+            flex: 1;
+            min-width: 90px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            padding: 0.6rem 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+        }
+
+        .op-btn:hover {
+            border-color: var(--green-dim);
+            color: var(--green-dim);
+        }
+
+        .op-btn.active {
+            border-color: var(--green);
+            color: var(--green);
+            background: rgba(0,255,136,0.06);
+            box-shadow: 0 0 10px var(--green-glow);
+        }
     </style>
 </head>
 <body>
@@ -414,10 +448,10 @@
 
     <!-- Menu cards -->
     <div class="menu-grid">
-        <div class="menu-card" onclick="showPanel('add')" id="card-add">
+        <div class="menu-card" onclick="showPanel('arithmetic')" id="card-arithmetic">
             <div class="card-num">01</div>
-            <div class="card-title">Add Numbers</div>
-            <div class="card-desc">Sum two integers</div>
+            <div class="card-title">Arithmetic</div>
+            <div class="card-desc">Add, subtract, multiply, divide</div>
         </div>
         <div class="menu-card" onclick="showPanel('evenodd')" id="card-evenodd">
             <div class="card-num">02</div>
@@ -436,28 +470,38 @@
         </div>
     </div>
 
-    <!-- ADD NUMBERS -->
-    <div class="panel" id="panel-add">
+    <!-- ARITHMETIC OPERATIONS -->
+    <div class="panel" id="panel-arithmetic">
         <div class="panel-header">
             <div class="panel-dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
-            <div class="panel-title">MODULE_01 — ADD_NUMBERS</div>
+            <div class="panel-title">MODULE_01 — ARITHMETIC_OPERATIONS</div>
         </div>
         <div class="panel-body">
-            <div class="form-row">
-                <div class="form-group">
-                    <label>First Number</label>
-                    <input type="number" id="add-first" placeholder="e.g. 42"/>
-                </div>
-                <div class="form-group">
-                    <label>Second Number</label>
-                    <input type="number" id="add-second" placeholder="e.g. 58"/>
+            <!-- Operation selector -->
+            <div class="form-group">
+                <label>Operation</label>
+                <div class="op-selector">
+                    <button class="op-btn active" data-op="add"      onclick="selectOp(this)">＋ ADD</button>
+                    <button class="op-btn"         data-op="subtract" onclick="selectOp(this)">－ SUBTRACT</button>
+                    <button class="op-btn"         data-op="multiply" onclick="selectOp(this)">✕ MULTIPLY</button>
+                    <button class="op-btn"         data-op="divide"   onclick="selectOp(this)">÷ DIVIDE</button>
                 </div>
             </div>
-            <button class="btn" onclick="runAdd()"><span>▶ EXECUTE</span></button>
-            <div class="loader" id="load-add">// processing...</div>
-            <div class="result-box" id="res-add">
+            <div class="form-row">
+                <div class="form-group">
+                    <label id="arith-label-a">First Number</label>
+                    <input type="number" id="arith-a" placeholder="e.g. 42"/>
+                </div>
+                <div class="form-group">
+                    <label id="arith-label-b">Second Number</label>
+                    <input type="number" id="arith-b" placeholder="e.g. 8"/>
+                </div>
+            </div>
+            <button class="btn" onclick="runArithmetic()"><span>▶ EXECUTE</span></button>
+            <div class="loader" id="load-arithmetic">// processing...</div>
+            <div class="result-box" id="res-arithmetic">
                 <div class="result-label">// OUTPUT</div>
-                <div class="result-text" id="res-add-text"></div>
+                <div class="result-text" id="res-arithmetic-text"></div>
             </div>
         </div>
     </div>
@@ -531,17 +575,30 @@
 
 <script>
     let activeCard = null;
+    let selectedOp = 'add';
+
+    const opLabels = {
+        add:      ['First Number', 'Second Number'],
+        subtract: ['Number', 'Subtract By'],
+        multiply: ['First Number', 'Second Number'],
+        divide:   ['Number', 'Divide By'],
+    };
+
+    function selectOp(btn) {
+        document.querySelectorAll('.op-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedOp = btn.dataset.op;
+        document.getElementById('arith-label-a').textContent = opLabels[selectedOp][0];
+        document.getElementById('arith-label-b').textContent = opLabels[selectedOp][1];
+        // hide previous result when switching operation
+        document.getElementById('res-arithmetic').classList.remove('visible');
+    }
 
     function showPanel(id) {
-        // Hide all panels
         document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
         document.querySelectorAll('.menu-card').forEach(c => c.classList.remove('active'));
-
-        // Show selected
         document.getElementById('panel-' + id).classList.add('visible');
         document.getElementById('card-' + id).classList.add('active');
-
-        // Scroll to panel
         setTimeout(() => {
             document.getElementById('panel-' + id).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }, 50);
@@ -564,14 +621,14 @@
         return res.json();
     }
 
-    async function runAdd() {
-        const first  = document.getElementById('add-first').value;
-        const second = document.getElementById('add-second').value;
-        if (!first || !second) return alert('Please fill in both numbers.');
-        setLoading('add', true);
-        const data = await post('/api/add', { first, second });
-        setLoading('add', false);
-        showResult('add', data.result);
+    async function runArithmetic() {
+        const a = document.getElementById('arith-a').value;
+        const b = document.getElementById('arith-b').value;
+        if (!a || !b) return alert('Please fill in both numbers.');
+        setLoading('arithmetic', true);
+        const data = await post('/api/arithmetic', { operation: selectedOp, a, b });
+        setLoading('arithmetic', false);
+        showResult('arithmetic', data.result);
     }
 
     async function runEvenOdd() {
@@ -601,7 +658,6 @@
         showResult('dayofweek', data.result);
     }
 
-    // Allow Enter key to submit
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'Enter') return;
         const active = document.querySelector('.panel.visible');
