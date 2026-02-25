@@ -61,13 +61,13 @@ public class UtilityService {
 
     public String dayOfWeek(int num) {
         return switch (num) {
-            case 1 -> "Day 1 → MONDAY";
-            case 2 -> "Day 2 → TUESDAY";
-            case 3 -> "Day 3 → WEDNESDAY";
-            case 4 -> "Day 4 → THURSDAY";
-            case 5 -> "Day 5 → FRIDAY";
-            case 6 -> "Day 6 → SATURDAY";
-            case 7 -> "Day 7 → SUNDAY";
+            case 2 -> "Day 1 → MONDAY";
+            case 3 -> "Day 2 → TUESDAY";
+            case 4 -> "Day 3 → WEDNESDAY";
+            case 5 -> "Day 4 → THURSDAY";
+            case 6 -> "Day 5 → FRIDAY";
+            case 7 -> "Day 6 → SATURDAY";
+            case 1 -> "Day 7 → SUNDAY";
             default -> "Invalid day. Please enter a number between 1 and 7.";
         };
     }
