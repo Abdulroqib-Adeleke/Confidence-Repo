@@ -47,6 +47,10 @@ public class UtilityService {
         String result = (num % 2 == 0) ? "Even" : "Odd";
         return num + " is an " + result + " number";
     }
+    public String squareRoot(int num) {
+        double result = Math.sqrt(num);
+        return "the square root of " + num + " is " + result;
+    }
 
     public String printTo(int num) {
         if (num <= 0) return "Please enter a positive number.";
